@@ -1,206 +1,115 @@
-﻿const inputFileName = 'input.txt';
-const outputFileName = 'output.txt';
+﻿const inputFileName = 'input.dat';
+const outputFileName = 'output.dat';
 
-const generatedArraySize = 10000;
-const separatorsArraySize = 1;
+const numbersCount = 64;
 
-type stringArrayType = array [1..generatedArraySize] of string;
-type separatorsType = array [1..separatorsArraySize] of string;
+const generatedArraySize = numbersCount;
+const partArraySize = 16;
+
+const resultingArraySize = generatedArraySize div 16 + 1;
+
 type integerArrayType = array [1..generatedArraySize] of integer;
+type sixteenArrayType = array [1..partArraySize] of integer;
 
-Type sizedIntegerArrayType = record
-  arr: integerArrayType;
-  size: integer;
-end;
+type resultingArrayType = array [1..generatedArraySize] of sixteenArrayType;
 
-Type sizedStringArrayType = record
-  arr: stringArrayType;
-  size: integer;
-end;
- 
-function concatArrays(arr1: sizedIntegerArrayType; arr2: sizedIntegerArrayType): sizedIntegerArrayType;
+procedure generateFile();
 begin
-  var concatedArray: sizedIntegerArrayType;
-  concatedArray.size := 0;
-
-  for var index := 1 to arr1.size do
+  var inputFile: file of integer;
+  Assign(inputFile, inputFileName);
+  Rewrite(inputFile);
+  
+  for var index := 1 to numbersCount do
   begin
-    concatedArray.size := concatedArray.size + 1;
-    concatedArray.arr[concatedArray.size] := arr1.arr[index];
-  end;
-
-  for var index := 1 to arr2.size do
-  begin
-    concatedArray.size := concatedArray.size + 1;
-    concatedArray.arr[concatedArray.size] := arr2.arr[index];
-  end;
-
-  Result := concatedArray;
-end; 
-
-function oneOfSeparators(symbol: string; separators: separatorsType): boolean;
-begin
-  for var index := 1 to separatorsArraySize do
-  begin
-    if symbol = separators[index] then
-    begin
-      Result := true;
-    end;
-  end;
-end;
-
-function isWordSeparator(sympol: string): boolean;
-begin
-  var separators: separatorsType = (',');
-
-  Result := oneOfSeparators(sympol, separators);
-end;
-
-var arrayLength: integer := 0;
-
-procedure push(var stringArray: stringArrayType; var currentArrayIndex: integer; var tempWord: string);
-begin
-  stringArray[currentArrayIndex] := tempWord;
-  currentArrayIndex := currentArrayIndex + 1;
-end;
-
-function splitString(text: string): sizedStringArrayType;
-begin
-  var stringArray: stringArrayType;
-  var currentArrayIndex: integer := 1;
-
-  var tempWord: string := '';
-
-  for var index := 1 to text.Length do
-  begin
-    var wordSeparator: boolean := isWordSeparator(text[index]);
-    if wordSeparator = true then
-    begin
-      if tempWord = '' then
-      begin
-        tempWord := '';
-        continue;
-      end;
-
-      push(stringArray, currentArrayIndex, tempWord);
-      arrayLength := currentArrayIndex - 1; 
-      tempWord := '';
-    end
-    else
-    begin
-      tempWord := tempWord + text[index];
-    end;
+    write(inputFile, random(100));
   end;
   
-  var wordSeparator: boolean := isWordSeparator(text[text.Length]);
-  if wordSeparator = false then
-  begin
-    push(stringArray, currentArrayIndex, tempWord);
-    arrayLength := currentArrayIndex - 1; 
-  end;
-
-  var sizedStringArray: sizedStringArrayType;
-  sizedStringArray.arr := stringArray;
-  sizedStringArray.size := currentArrayIndex - 1;
-
-  Result := sizedStringArray;
+  Close(inputFile);
 end;
 
-procedure viewArray(generatedArray: sizedIntegerArrayType);
+function getDataInFile(currentFile: file of integer): integerArrayType;
 begin
-  write('[');
-  for var index := 1 to generatedArray.size - 1 do
-  begin
-    write(generatedArray.arr[index] + ', ');
-  end;
-  writeln(generatedArray.arr[generatedArray.size] + ']');
-end;
-
-function arrayToNumber(stringArray: sizedStringArrayType): sizedIntegerArrayType;
-begin
-  var integerArray: sizedIntegerArrayType;
-  integerArray.size := stringArray.size;
+  reset(currentFile);
   
-  for var index := 1 to generatedArraySize do
+  var index: integer := 1;
+  var data: integerArrayType;
+  while not EOF(currentFile) do
   begin
-    if stringArray.arr[index] <> '' then
-    begin
-      integerArray.arr[index] := stringArray.arr[index].ToInteger();
-    end;
+    var number: integer;
+    read(currentFile, number);
+    data[index] := number;
+    index := index + 1;
   end;
   
-  Result := integerArray;
+  Result := data;
 end;
 
-type sixteenArrayType = array [1..16] of integer;
-type resultingArrayType = array [1..10000] of sixteenArrayType;
-
-var sixteenArray: sixteenArrayType;
-
-Type sizedResultingArrayType = record
-  arr: resultingArrayType;
-  size: integer;
-end;
-
-procedure writeToFile(outputFile: TextFile; sizedArr: sizedResultingArrayType);
+function divideData(data: integerArrayType): resultingArrayType;
 begin
-  for var index := 1 to sizedArr.size - 1 do
-  begin
-    write(outputFile, sizedArr.arr[index]);
-    write(outputFile, ', ');
-  end;
-  writeln(outputFile, sizedArr.arr[sizedArr.size]);
-end;
-
-begin
-  var inputFile: TextFile;
-  var outputFile: TextFile;
-
-  AssignFile(inputFile, inputFileName);
-  AssignFile(outputFile, outputFileName);
+  var dividedData: resultingArrayType;
+  var sixteenArray :sixteenArrayType;
   
-  var fileText: string;
-
-  var allNumbers: sizedIntegerArrayType;
-
-  reset(inputFile);
-  while not eof(inputFile) do
-  begin
-    readln(inputFile, fileText);
-    var splittedText: sizedStringArrayType := splitString(fileText);
-    allNumbers := concatArrays(allNumbers, arrayToNumber(splittedText));
-  end;
+  var dividedDataIndex: integer := 1;
   
-  var sizedResultingArray: sizedResultingArrayType;
-  sizedResultingArray.size := 1;
-  for var index := 1 to allNumbers.size do
+  for var index: integer := 1 to generatedArraySize do
   begin
     if index mod 16 = 0 then
     begin
-      sixteenArray[16] := allNumbers.arr[index];
-      sizedResultingArray.arr[sizedResultingArray.size] := sixteenArray;
-      sizedResultingArray.size := sizedResultingArray.size + 1;
+      sixteenArray[16] := data[index];
+      dividedData[dividedDataIndex] := sixteenArray;
+      dividedDataIndex := dividedDataIndex + 1;
     end
     else
-    begin
-      sixteenArray[index mod 16] := allNumbers.arr[index];
+    begin  
+      sixteenArray[index mod 16] := data[index];
     end;
   end;
-  sizedResultingArray.arr[sizedResultingArray.size] := sixteenArray;
   
-  write('[');
-  for var index: integer := 1 to sizedResultingArray.size - 1 do
+  Result := dividedData;
+end;
+
+procedure writeDataToFile(outputFile: file of sixteenArrayType; data: resultingArrayType);
+begin
+  rewrite(outputFile);
+  
+  for var index := 1 to resultingArraySize do
   begin
-    write(sizedResultingArray.arr[index]);
+    write(outputFile, data[index]);
+  end;
+end;
+
+procedure viewDividedData(dividedData: resultingArrayType);
+begin
+  write('[');
+  for var index: integer := 1 to resultingArraySize - 2 do
+  begin
+    write(dividedData[index]);
     write(', ');
   end;
-  write(sizedResultingArray.arr[sizedResultingArray.size]);
-  writeln(']');
+  write(dividedData[resultingArraySize - 1]);
+  write(']');
+end;
 
-  rewrite(outputFile);
+begin
+  generateFile();
+  
+  var inputFile: file of integer;
+  var outputFile: file of sixteenArrayType;
 
-  writeToFile(outputFile, sizedResultingArray);
-
-  CloseFile(inputFile);
-  CloseFile(outputFile);
+  Assign(inputFile, inputFileName);
+  Assign(outputFile, outputFileName);
+  
+  var data: integerArrayType := getDataInFile(inputFile);
+  writeln('Data: ');
+  writeln(data);
+  writeln();
+  
+  var dividedData: resultingArrayType := divideData(data);
+  writeln('Divided data: ');
+  viewDividedData(dividedData);
+  
+  writeDataToFile(outputFile, dividedData);
+  
+  Close(inputFile);
+  Close(outputFile);
 end.
